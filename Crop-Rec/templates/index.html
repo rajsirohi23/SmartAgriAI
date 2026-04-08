@@ -1,0 +1,1060 @@
+<!-- <!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Crop Recommendation</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  </head>
+  <body>
+    <div class="app-container">
+      <header class="app-header">
+        <h1>Smart Crop Recommendation</h1>
+        <p>Enter your soil and weather data to get a recommended crop.</p>
+      </header>
+
+      <main class="content">
+        {% if error %}
+        <div class="alert alert-error">
+          {{ error }}
+        </div>
+        {% endif %}
+
+        {% if prediction %}
+        <div class="alert alert-success">
+          Recommended crop:
+          <strong>{{ prediction }}</strong>
+        </div>
+
+        {% if ranked and ranked|length > 1 %}
+        <div class="recommendation-details">
+          <p class="details-title">Other close matches:</p>
+          <ul class="details-list">
+            {% for item in ranked[1:4] %}
+            <li>{{ item.crop }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+        {% endif %}
+        {% endif %}
+
+        <form id="crop-form" action="{{ url_for('predict') }}" method="POST" novalidate>
+          <div class="form-grid">
+            <div class="form-field">
+              <label for="N">Nitrogen (N)</label>
+              <input
+                type="number"
+                step="0.01"
+                id="N"
+                name="N"
+                value="{{ form_values.N if form_values else '' }}"
+                placeholder="e.g. 90"
+                required
+              />
+            </div>
+
+            <div class="form-field">
+              <label for="P">Phosphorus (P)</label>
+              <input
+                type="number"
+                step="0.01"
+                id="P"
+                name="P"
+                value="{{ form_values.P if form_values else '' }}"
+                placeholder="e.g. 42"
+                required
+              />
+            </div>
+
+            <div class="form-field">
+              <label for="K">Potassium (K)</label>
+              <input
+                type="number"
+                step="0.01"
+                id="K"
+                name="K"
+                value="{{ form_values.K if form_values else '' }}"
+                placeholder="e.g. 43"
+                required
+              />
+            </div>
+
+            <div class="form-field">
+              <label for="temperature">Temperature (°C)</label>
+              <input
+                type="number"
+                step="0.1"
+                id="temperature"
+                name="temperature"
+                value="{{ form_values.temperature if form_values else '' }}"
+                placeholder="e.g. 25.5"
+                required
+              />
+            </div>
+
+            <div class="form-field">
+              <label for="humidity">Humidity (%)</label>
+              <input
+                type="number"
+                step="0.1"
+                id="humidity"
+                name="humidity"
+                value="{{ form_values.humidity if form_values else '' }}"
+                placeholder="e.g. 80"
+                required
+              />
+            </div>
+
+            <div class="form-field">
+              <label for="ph">Soil pH</label>
+              <input
+                type="number"
+                step="0.01"
+                id="ph"
+                name="ph"
+                value="{{ form_values.ph if form_values else '' }}"
+                placeholder="e.g. 6.5"
+                required
+              />
+            </div>
+
+            <div class="form-field">
+              <label for="rainfall">Rainfall (mm)</label>
+              <input
+                type="number"
+                step="0.1"
+                id="rainfall"
+                name="rainfall"
+                value="{{ form_values.rainfall if form_values else '' }}"
+                placeholder="e.g. 120.5"
+                required
+              />
+            </div>
+          </div>
+
+          <div class="actions">
+            <button type="submit" class="btn-primary">Get Recommendation</button>
+            <button type="reset" class="btn-secondary">Clear</button>
+          </div>
+        </form>
+      </main>
+
+      <footer class="app-footer">
+        <small>Powered by a similarity-based crop recommendation engine.</small>
+      </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  </body>
+  </html>
+ -->
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Crop Recommendation — Smart Agri AI</title>
+
+  <!-- Google Fonts — same as homepage -->
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <!-- Font Awesome — same as homepage -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <!-- Main CSS from Flask static -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+
+  <style>
+    /* ============================================================
+       CROP RECOMMENDATION FLASK PAGE — Scoped styles
+       Extends style.css, never overwrites it.
+    ============================================================ */
+
+    /* ── Page layout ── */
+    .cr-page {
+      position: relative;
+      min-height: 100vh;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Top hero strip ── */
+    .cr-hero {
+      position: relative;
+      padding: 7.5rem 5% 3.5rem;
+      text-align: center;
+      overflow: hidden;
+    }
+    .cr-hero .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.3;
+      animation: orbFloat 8s ease-in-out infinite;
+    }
+    .cr-hero .orb1 {
+      width: 380px; height: 380px;
+      background: radial-gradient(circle, #16a34a, transparent 70%);
+      top: -120px; left: -80px;
+    }
+    .cr-hero .orb2 {
+      width: 280px; height: 280px;
+      background: radial-gradient(circle, #4ade80, transparent 70%);
+      bottom: -60px; right: 8%;
+      animation-delay: -4s;
+    }
+    @keyframes orbFloat {
+      0%,100% { transform: translate(0,0) scale(1); }
+      33%      { transform: translate(25px,-25px) scale(1.07); }
+      66%      { transform: translate(-18px,18px) scale(0.95); }
+    }
+
+    /* Breadcrumb */
+    .cr-breadcrumb {
+      position: absolute;
+      top: 5.2rem; left: 5%;
+      display: flex; align-items: center; gap: 0.5rem;
+      font-size: 0.78rem;
+      color: #86a898;
+      z-index: 2;
+    }
+    .cr-breadcrumb a {
+      color: #4ade80;
+      text-decoration: none;
+      transition: opacity 0.2s;
+    }
+    .cr-breadcrumb a:hover { opacity: 0.7; }
+    .cr-breadcrumb i { font-size: 0.58rem; }
+
+    .cr-badge {
+      display: inline-flex; align-items: center; gap: 0.45rem;
+      background: rgba(74,222,128,0.1);
+      border: 1px solid rgba(74,222,128,0.4);
+      padding: 0.4rem 1rem;
+      border-radius: 99px;
+      font-size: 0.78rem; font-weight: 600;
+      color: #4ade80;
+      letter-spacing: 0.5px;
+      margin-bottom: 1.2rem;
+      animation: badgePulse 3s ease-in-out infinite;
+    }
+    @keyframes badgePulse {
+      0%,100% { box-shadow: 0 0 0 rgba(74,222,128,0); }
+      50%      { box-shadow: 0 0 20px rgba(74,222,128,0.22); }
+    }
+
+    .cr-title {
+      font-family: 'Orbitron', monospace;
+      font-size: clamp(1.8rem, 4vw, 3rem);
+      font-weight: 900;
+      line-height: 1.15;
+      color: #e8f5e9;
+      margin-bottom: 0.8rem;
+    }
+    .cr-title .g-text {
+      background: linear-gradient(135deg, #4ade80, #a3e635);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .cr-subtitle {
+      font-size: 0.95rem;
+      color: #86a898;
+      max-width: 480px;
+      margin: 0 auto;
+      line-height: 1.75;
+    }
+
+    /* ── Main content wrapper ── */
+    .cr-main {
+      flex: 1;
+      padding: 0 5% 5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.5rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── Alerts ── */
+    .cr-alert {
+      width: 100%; max-width: 820px;
+      padding: 0.9rem 1.4rem;
+      border-radius: 14px;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      border: 1px solid transparent;
+      animation: alertSlide 0.4s ease forwards;
+    }
+    @keyframes alertSlide {
+      from { opacity:0; transform:translateY(-10px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+    .cr-alert-icon {
+      width: 32px; height: 32px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.95rem; flex-shrink: 0;
+    }
+    .cr-alert-body { flex: 1; }
+    .cr-alert-body small {
+      display: block; font-size: 0.72rem;
+      opacity: 0.7; margin-top: 0.1rem;
+    }
+
+    /* Success */
+    .cr-alert-success {
+      background: linear-gradient(135deg, rgba(34,197,94,0.12), rgba(74,222,128,0.07));
+      border-color: rgba(74,222,128,0.35);
+      color: #bbf7d0;
+    }
+    .cr-alert-success .cr-alert-icon {
+      background: rgba(74,222,128,0.15);
+      color: #4ade80;
+    }
+
+    /* Error */
+    .cr-alert-error {
+      background: linear-gradient(135deg, rgba(239,68,68,0.12), rgba(248,113,113,0.07));
+      border-color: rgba(248,113,113,0.35);
+      color: #fee2e2;
+    }
+    .cr-alert-error .cr-alert-icon {
+      background: rgba(248,113,113,0.15);
+      color: #f87171;
+    }
+
+    /* ── Ranked other matches ── */
+    .cr-matches {
+      width: 100%; max-width: 820px;
+      background: rgba(10,30,18,0.6);
+      border: 1px solid rgba(74,222,128,0.12);
+      border-radius: 14px;
+      padding: 1rem 1.4rem;
+      backdrop-filter: blur(10px);
+      animation: alertSlide 0.4s 0.1s ease both;
+    }
+    .cr-matches-title {
+      font-size: 0.78rem; font-weight: 700;
+      color: #86a898; letter-spacing: 1px;
+      text-transform: uppercase; margin-bottom: 0.75rem;
+    }
+    .cr-matches-list {
+      display: flex; flex-wrap: wrap; gap: 0.5rem;
+      list-style: none; padding: 0; margin: 0;
+    }
+    .cr-matches-list li {
+      display: flex; align-items: center; gap: 0.4rem;
+      padding: 0.35rem 0.85rem;
+      background: rgba(74,222,128,0.07);
+      border: 1px solid rgba(74,222,128,0.15);
+      border-radius: 99px;
+      font-size: 0.8rem; color: #86a898;
+      transition: all 0.25s;
+    }
+    .cr-matches-list li:hover {
+      border-color: rgba(74,222,128,0.4);
+      color: #4ade80;
+      background: rgba(74,222,128,0.12);
+    }
+    .cr-matches-list li i { color: #4ade80; font-size: 0.6rem; }
+
+    /* ── Form card ── */
+    .cr-form-card {
+      width: 100%; max-width: 820px;
+      background: rgba(10,30,18,0.75);
+      border: 1px solid rgba(74,222,128,0.15);
+      border-radius: 22px;
+      padding: 2.5rem;
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      position: relative;
+      overflow: hidden;
+      animation: cardEntry 0.65s 0.15s cubic-bezier(0.34,1.56,0.64,1) both;
+    }
+    @keyframes cardEntry {
+      from { opacity:0; transform:translateY(35px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+    /* Top shimmer border */
+    .cr-form-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 8%; right: 8%;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, #22c55e, #a3e635, transparent);
+      border-radius: 99px;
+    }
+    /* Ambient glow */
+    .cr-form-card::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 50% -20%, rgba(74,222,128,0.1), transparent 60%);
+      pointer-events: none;
+    }
+
+    /* Card header */
+    .cr-form-header {
+      display: flex; align-items: center; gap: 1rem;
+      margin-bottom: 2rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid rgba(74,222,128,0.1);
+    }
+    .cr-form-header-icon {
+      width: 52px; height: 52px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #16a34a, #4ade80);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.3rem; color: #050e0a;
+      box-shadow: 0 0 22px rgba(74,222,128,0.4);
+      flex-shrink: 0;
+    }
+    .cr-form-header-text h2 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.15rem; font-weight: 800;
+      color: #e8f5e9; margin-bottom: 0.2rem;
+    }
+    .cr-form-header-text p {
+      font-size: 0.8rem; color: #86a898;
+    }
+
+    /* ── Form grid ── */
+    .cr-form-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem 1.1rem;
+    }
+    @media (max-width: 900px) {
+      .cr-form-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 680px) {
+      .cr-form-grid { grid-template-columns: repeat(2, 1fr); }
+      .cr-form-card  { padding: 1.8rem 1.4rem; }
+    }
+    @media (max-width: 420px) {
+      .cr-form-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ── Individual field ── */
+    .cr-field {
+      display: flex; flex-direction: column; gap: 0.45rem;
+    }
+    .cr-field label {
+      font-size: 0.75rem; font-weight: 600;
+      color: #86a898;
+      letter-spacing: 0.4px;
+      display: flex; align-items: center; gap: 0.35rem;
+    }
+    .cr-field label i {
+      color: #4ade80; font-size: 0.65rem;
+    }
+    .cr-field input {
+      background: rgba(5,14,10,0.65);
+      border: 1px solid rgba(74,222,128,0.15);
+      border-radius: 10px;
+      padding: 0.72rem 1rem;
+      font-size: 0.88rem;
+      font-family: 'Inter', sans-serif;
+      color: #e8f5e9;
+      outline: none;
+      transition: border-color 0.25s, box-shadow 0.25s, transform 0.25s;
+      width: 100%;
+      -moz-appearance: textfield;
+    }
+    .cr-field input::-webkit-outer-spin-button,
+    .cr-field input::-webkit-inner-spin-button { -webkit-appearance: none; }
+    .cr-field input::placeholder { color: rgba(134,168,152,0.45); font-size: 0.82rem; }
+    .cr-field input:focus {
+      border-color: rgba(74,222,128,0.75);
+      box-shadow: 0 0 0 3px rgba(74,222,128,0.1),
+                  0 4px 14px rgba(0,0,0,0.4);
+      transform: translateY(-1px);
+    }
+    .cr-field input:hover:not(:focus) {
+      border-color: rgba(74,222,128,0.3);
+    }
+    /* Error state */
+    .cr-field input.input-error {
+      border-color: rgba(248,113,113,0.7);
+      box-shadow: 0 0 0 3px rgba(248,113,113,0.1);
+    }
+    /* Unit hint tag */
+    .cr-field-wrap {
+      position: relative;
+    }
+    .cr-field-unit {
+      position: absolute;
+      right: 0.75rem; top: 50%;
+      transform: translateY(-50%);
+      font-size: 0.68rem; font-weight: 700;
+      color: rgba(74,222,128,0.5);
+      pointer-events: none;
+      letter-spacing: 0.3px;
+    }
+    .cr-field-wrap input { padding-right: 2.8rem; }
+
+    /* ── Divider before actions ── */
+    .cr-form-divider {
+      height: 1px;
+      background: rgba(74,222,128,0.1);
+      margin: 1.75rem 0 1.5rem;
+      position: relative;
+    }
+    .cr-form-divider::after {
+      content: 'Ready to predict?';
+      position: absolute;
+      left: 50%; top: 50%;
+      transform: translate(-50%,-50%);
+      background: #0a1e12;
+      padding: 0 0.75rem;
+      font-size: 0.72rem; color: #86a898;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+    }
+
+    /* ── Action buttons ── */
+    .cr-actions {
+      display: flex; flex-wrap: wrap; gap: 0.85rem;
+      align-items: center;
+    }
+
+    /* Submit — glowing green */
+    .cr-btn-submit {
+      display: inline-flex; align-items: center; gap: 0.6rem;
+      padding: 0.82rem 2rem;
+      background: linear-gradient(135deg, #22c55e, #a3e635);
+      color: #050e0a;
+      font-family: 'Inter', sans-serif;
+      font-weight: 700; font-size: 0.9rem;
+      border: none; border-radius: 12px;
+      cursor: pointer;
+      position: relative; overflow: hidden;
+      transition: transform 0.3s, box-shadow 0.3s;
+      box-shadow: 0 0 26px rgba(74,222,128,0.4);
+      letter-spacing: 0.3px;
+    }
+    .cr-btn-submit::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.22), transparent);
+      opacity: 0; transition: opacity 0.25s;
+    }
+    /* Shimmer sweep */
+    .cr-btn-submit::after {
+      content: '';
+      position: absolute;
+      top: 0; left: -100%; width: 55%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+      transition: left 0.5s ease;
+    }
+    .cr-btn-submit:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 0 44px rgba(74,222,128,0.65);
+    }
+    .cr-btn-submit:hover::before  { opacity: 1; }
+    .cr-btn-submit:hover::after   { left: 150%; }
+    .cr-btn-submit:active         { transform: translateY(-1px); }
+    .cr-btn-submit i:last-child   { transition: transform 0.3s; }
+    .cr-btn-submit:hover i:last-child { transform: translateX(4px); }
+
+    /* Loading state */
+    .cr-btn-submit.loading .btn-label { display: none; }
+    .cr-btn-submit .btn-spinner {
+      display: none; width: 16px; height: 16px;
+      border: 2px solid rgba(5,14,10,0.4);
+      border-top-color: #050e0a;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+    .cr-btn-submit.loading .btn-spinner { display: block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Reset button */
+    .cr-btn-reset {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      padding: 0.82rem 1.5rem;
+      background: rgba(5,14,10,0.7);
+      color: #86a898;
+      font-family: 'Inter', sans-serif;
+      font-weight: 600; font-size: 0.88rem;
+      border: 1px solid rgba(74,222,128,0.15);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .cr-btn-reset:hover {
+      border-color: rgba(74,222,128,0.4);
+      color: #e8f5e9;
+      background: rgba(74,222,128,0.08);
+      transform: translateY(-2px);
+    }
+
+    /* ── Input guide chips below form ── */
+    .cr-guide {
+      width: 100%; max-width: 820px;
+      display: flex; flex-wrap: wrap; gap: 0.55rem;
+      justify-content: center;
+      animation: cardEntry 0.6s 0.35s ease both;
+    }
+    .cr-guide-chip {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      padding: 0.3rem 0.8rem;
+      background: rgba(10,30,18,0.5);
+      border: 1px solid rgba(74,222,128,0.1);
+      border-radius: 99px;
+      font-size: 0.72rem; color: #86a898;
+      transition: all 0.25s;
+    }
+    .cr-guide-chip i { color: #4ade80; font-size: 0.62rem; }
+    .cr-guide-chip:hover {
+      border-color: rgba(74,222,128,0.3);
+      color: #e8f5e9;
+    }
+
+    /* ── Responsive tweaks ── */
+    @media (max-width: 600px) {
+      .cr-hero { padding: 7rem 5% 2.5rem; }
+      .cr-title { font-size: 1.8rem; }
+      .cr-actions { flex-direction: column; }
+      .cr-btn-submit, .cr-btn-reset { width: 100%; justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============================================================
+       ANIMATED CANVAS — same particle system as homepage
+  ============================================================ -->
+  <canvas id="bgCanvas"></canvas>
+
+  <!-- ============================================================
+       NAVBAR — identical to homepage
+  ============================================================ -->
+  <nav class="navbar" id="navbar">
+    <div class="nav-container">
+      <div class="nav-logo">
+        <span class="logo-icon"><i class="fa-solid fa-leaf"></i></span>
+        <span class="logo-text">Smart<span class="accent">Agri</span> AI</span>
+      </div>
+      <!-- <ul class="nav-links" id="navLinks">
+        <li><a href="/" class="nav-link">Home</a></li>
+        <li><a href="/#about"    class="nav-link">About</a></li>
+        <li><a href="/#services" class="nav-link active">Services</a></li>
+        <li><a href="/#features" class="nav-link">Features</a></li>
+        <li><a href="/#contact"  class="nav-link">Contact</a></li>
+      </ul> -->
+      <div class="hamburger" id="hamburger">
+        <span></span><span></span><span></span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ============================================================
+       PAGE WRAPPER
+  ============================================================ -->
+  <div class="cr-page">
+
+    <!-- ── HERO ── -->
+    <div class="cr-hero">
+      <div class="orb orb1"></div>
+      <div class="orb orb2"></div>
+
+      <!-- Breadcrumb -->
+      <div class="cr-breadcrumb">
+        <a href="/"><i class="fa-solid fa-house"></i> Home</a>
+        <i class="fa-solid fa-chevron-right"></i>
+        <a href="/#services">Services</a>
+        <i class="fa-solid fa-chevron-right"></i>
+        <span>Crop Recommendation</span>
+      </div>
+
+      <div class="cr-badge">
+        <i class="fa-solid fa-wheat-awn"></i> AI Module 01 — Random Forest
+      </div>
+      <h1 class="cr-title">
+        Crop Recommendation<br />
+        <span class="g-text">using AI</span>
+      </h1>
+      <p class="cr-subtitle">
+        Enter your soil nutrients and weather parameters to get an instant,
+        AI-powered crop recommendation for your field.
+      </p>
+    </div>
+
+    <!-- ── MAIN CONTENT ── -->
+    <main class="cr-main">
+
+      <!-- ── Error alert ── -->
+      {% if error %}
+      <div class="cr-alert cr-alert-error">
+        <div class="cr-alert-icon">
+          <i class="fa-solid fa-circle-exclamation"></i>
+        </div>
+        <div class="cr-alert-body">
+          <strong>Input Error</strong>
+          <small>{{ error }}</small>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- ── Success alert ── -->
+      {% if prediction %}
+      <div class="cr-alert cr-alert-success">
+        <div class="cr-alert-icon">
+          <i class="fa-solid fa-seedling"></i>
+        </div>
+        <div class="cr-alert-body">
+          <strong>Recommended Crop: {{ prediction }}</strong>
+          <small>Our model recommends this crop based on your soil and weather inputs.</small>
+        </div>
+      </div>
+
+      <!-- Other close matches -->
+      {% if ranked and ranked|length > 1 %}
+      <div class="cr-matches">
+        <p class="cr-matches-title">
+          <i class="fa-solid fa-list-check" style="color:#4ade80;margin-right:0.3rem;"></i>
+          Other close matches
+        </p>
+        <ul class="cr-matches-list">
+          {% for item in ranked[1:4] %}
+          <li>
+            <i class="fa-solid fa-circle-dot"></i>
+            {{ item.crop }}
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+      {% endif %}
+
+      <!-- ── Form card ── -->
+      <div class="cr-form-card">
+
+        <!-- Card header -->
+        <div class="cr-form-header">
+          <div class="cr-form-header-icon">
+            <i class="fa-solid fa-wheat-awn"></i>
+          </div>
+          <div class="cr-form-header-text">
+            <h2>Soil &amp; Weather Parameters</h2>
+            <p>Fill all 7 fields — results are instant</p>
+          </div>
+        </div>
+
+        <!-- Form -->
+        <form id="crop-form" action="{{ url_for('predict') }}" method="POST" novalidate>
+          <div class="cr-form-grid">
+
+            <!-- Nitrogen -->
+            <div class="cr-field">
+              <label for="N">
+                <i class="fa-solid fa-flask"></i> Nitrogen (N)
+              </label>
+              <div class="cr-field-wrap">
+                <input
+                  type="number" step="0.01"
+                  id="N" name="N"
+                  value="{{ form_values.N if form_values else '' }}"
+                  placeholder="e.g. 90"
+                  required
+                />
+                <span class="cr-field-unit">kg/ha</span>
+              </div>
+            </div>
+
+            <!-- Phosphorus -->
+            <div class="cr-field">
+              <label for="P">
+                <i class="fa-solid fa-flask"></i> Phosphorus (P)
+              </label>
+              <div class="cr-field-wrap">
+                <input
+                  type="number" step="0.01"
+                  id="P" name="P"
+                  value="{{ form_values.P if form_values else '' }}"
+                  placeholder="e.g. 42"
+                  required
+                />
+                <span class="cr-field-unit">kg/ha</span>
+              </div>
+            </div>
+
+            <!-- Potassium -->
+            <div class="cr-field">
+              <label for="K">
+                <i class="fa-solid fa-flask"></i> Potassium (K)
+              </label>
+              <div class="cr-field-wrap">
+                <input
+                  type="number" step="0.01"
+                  id="K" name="K"
+                  value="{{ form_values.K if form_values else '' }}"
+                  placeholder="e.g. 43"
+                  required
+                />
+                <span class="cr-field-unit">kg/ha</span>
+              </div>
+            </div>
+
+            <!-- Temperature -->
+            <div class="cr-field">
+              <label for="temperature">
+                <i class="fa-solid fa-thermometer-half"></i> Temperature
+              </label>
+              <div class="cr-field-wrap">
+                <input
+                  type="number" step="0.1"
+                  id="temperature" name="temperature"
+                  value="{{ form_values.temperature if form_values else '' }}"
+                  placeholder="e.g. 25.5"
+                  required
+                />
+                <span class="cr-field-unit">°C</span>
+              </div>
+            </div>
+
+            <!-- Humidity -->
+            <div class="cr-field">
+              <label for="humidity">
+                <i class="fa-solid fa-droplet"></i> Humidity
+              </label>
+              <div class="cr-field-wrap">
+                <input
+                  type="number" step="0.1"
+                  id="humidity" name="humidity"
+                  value="{{ form_values.humidity if form_values else '' }}"
+                  placeholder="e.g. 80"
+                  required
+                />
+                <span class="cr-field-unit">%</span>
+              </div>
+            </div>
+
+            <!-- pH -->
+            <div class="cr-field">
+              <label for="ph">
+                <i class="fa-solid fa-vial"></i> Soil pH
+              </label>
+              <div class="cr-field-wrap">
+                <input
+                  type="number" step="0.01"
+                  id="ph" name="ph"
+                  value="{{ form_values.ph if form_values else '' }}"
+                  placeholder="e.g. 6.5"
+                  required
+                />
+                <span class="cr-field-unit">0–14</span>
+              </div>
+            </div>
+
+            <!-- Rainfall -->
+            <div class="cr-field">
+              <label for="rainfall">
+                <i class="fa-solid fa-cloud-rain"></i> Rainfall
+              </label>
+              <div class="cr-field-wrap">
+                <input
+                  type="number" step="0.1"
+                  id="rainfall" name="rainfall"
+                  value="{{ form_values.rainfall if form_values else '' }}"
+                  placeholder="e.g. 120.5"
+                  required
+                />
+                <span class="cr-field-unit">mm</span>
+              </div>
+            </div>
+
+          </div><!-- /cr-form-grid -->
+
+          <!-- Divider -->
+          <div class="cr-form-divider"></div>
+
+          <!-- Actions -->
+          <div class="cr-actions">
+            <button type="submit" class="cr-btn-submit" id="submitBtn">
+              <i class="fa-solid fa-seedling"></i>
+              <span class="btn-label">Get Recommendation</span>
+              <div class="btn-spinner"></div>
+              <i class="fa-solid fa-arrow-right"></i>
+            </button>
+            <button type="reset" class="cr-btn-reset" id="resetBtn">
+              <i class="fa-solid fa-rotate-left"></i>
+              Clear All
+            </button>
+          </div>
+
+        </form>
+      </div><!-- /cr-form-card -->
+
+      <!-- Guide chips -->
+      <div class="cr-guide">
+        <span class="cr-guide-chip"><i class="fa-solid fa-circle-info"></i> N, P, K in kg/ha</span>
+        <span class="cr-guide-chip"><i class="fa-solid fa-circle-info"></i> Temperature in °C</span>
+        <span class="cr-guide-chip"><i class="fa-solid fa-circle-info"></i> Humidity as percentage</span>
+        <span class="cr-guide-chip"><i class="fa-solid fa-circle-info"></i> pH between 0 and 14</span>
+        <span class="cr-guide-chip"><i class="fa-solid fa-circle-info"></i> Rainfall in mm</span>
+        <span class="cr-guide-chip"><i class="fa-solid fa-brain"></i> Powered by Random Forest</span>
+      </div>
+
+    </main><!-- /cr-main -->
+
+    <!-- ============================================================
+         FOOTER — identical to homepage
+    ============================================================ -->
+    <footer class="footer">
+      <div class="footer-bg-animation"></div>
+      <div class="footer-container">
+
+        <div class="footer-brand">
+          <div class="nav-logo">
+            <span class="logo-icon"><i class="fa-solid fa-leaf"></i></span>
+            <span class="logo-text">Smart<span class="accent">Agri</span> AI</span>
+          </div>
+          <p>Empowering farmers with the power of artificial intelligence. Modern farming for a sustainable future.</p>
+          <div class="footer-socials">
+            <a href="#"><i class="fa-brands fa-github"></i></a>
+            <a href="#"><i class="fa-brands fa-linkedin"></i></a>
+            <a href="#"><i class="fa-brands fa-twitter"></i></a>
+            <a href="#"><i class="fa-brands fa-instagram"></i></a>
+          </div>
+        </div>
+
+        <div class="footer-links">
+          <h4>Quick Links</h4>
+          <ul>
+            <li><a href="/"><i class="fa-solid fa-chevron-right"></i> Home</a></li>
+            <li><a href="/#about"><i class="fa-solid fa-chevron-right"></i> About</a></li>
+            <li><a href="/#services"><i class="fa-solid fa-chevron-right"></i> Services</a></li>
+            <li><a href="/#features"><i class="fa-solid fa-chevron-right"></i> Features</a></li>
+            <li><a href="/#contact"><i class="fa-solid fa-chevron-right"></i> Contact</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-links">
+          <h4>AI Modules</h4>
+          <ul>
+            <li><a href="http://127.0.0.1:5002"><i class="fa-solid fa-chevron-right"></i> Crop Recommendation</a></li>
+            <li><a href="http://127.0.0.1:5001"><i class="fa-solid fa-chevron-right"></i> Soil Fertility</a></li>
+            <li><a href="http://127.0.0.1:5000"><i class="fa-solid fa-chevron-right"></i> Yield Prediction</a></li>
+            <li><a href="http://127.0.0.1:5003"><i class="fa-solid fa-chevron-right"></i> Disease Detection</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-tech">
+          <h4>Tech Stack</h4>
+          <div class="tech-tags">
+            <span>Python</span><span>Flask</span><span>Scikit-Learn</span>
+            <span>TensorFlow</span><span>Pandas</span><span>NumPy</span>
+            <span>OpenCV</span><span>HTML/CSS/JS</span>
+          </div>
+        </div>
+
+      </div>
+      <div class="footer-bottom">
+        <p>© 2025 Smart Agriculture AI. Built with <i class="fa-solid fa-heart"></i> for Farmers of India.</p>
+        <p>ML + DL + Flask | Final Year Project</p>
+      </div>
+    </footer>
+
+  </div><!-- /cr-page -->
+
+  <!-- ============================================================
+       SCRIPTS
+  ============================================================ -->
+  <!-- Main script — canvas, navbar, tilt, reveal -->
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+
+  <script>
+    /* ── Form validation with styled inline errors ── */
+    (function () {
+      const form      = document.getElementById('crop-form');
+      const submitBtn = document.getElementById('submitBtn');
+      const resetBtn  = document.getElementById('resetBtn');
+      if (!form) return;
+
+      form.addEventListener('submit', function (e) {
+        const inputs  = form.querySelectorAll('input[required]');
+        let hasError  = false;
+
+        inputs.forEach(input => {
+          input.classList.remove('input-error');
+          if (!input.value.trim()) {
+            hasError = true;
+            input.classList.add('input-error');
+            // Shake animation
+            input.animate(
+              [{ transform:'translateX(0)' },{ transform:'translateX(-6px)' },
+               { transform:'translateX(6px)' },{ transform:'translateX(0)' }],
+              { duration: 300, iterations: 2 }
+            );
+          }
+        });
+
+        if (hasError) {
+          e.preventDefault();
+          // Scroll to first error
+          const first = form.querySelector('.input-error');
+          if (first) first.scrollIntoView({ behavior:'smooth', block:'center' });
+          return;
+        }
+
+        // Show loading state on submit button
+        submitBtn.classList.add('loading');
+        submitBtn.disabled = true;
+      });
+
+      // Reset button — clear error states
+      resetBtn.addEventListener('click', function () {
+        form.querySelectorAll('.input-error').forEach(el => el.classList.remove('input-error'));
+        submitBtn.classList.remove('loading');
+        submitBtn.disabled = false;
+      });
+
+      // Live clear error on input
+      form.querySelectorAll('input').forEach(input => {
+        input.addEventListener('input', function () {
+          if (this.value.trim()) this.classList.remove('input-error');
+        });
+      });
+
+      /* ── Ripple on submit button ── */
+      submitBtn.addEventListener('click', function (e) {
+        const rect   = this.getBoundingClientRect();
+        const circle = document.createElement('span');
+        const d      = Math.max(this.clientWidth, this.clientHeight);
+        circle.style.cssText = `
+          position:absolute;width:${d}px;height:${d}px;border-radius:50%;
+          background:rgba(255,255,255,0.25);pointer-events:none;
+          transform:translate(-50%,-50%) scale(0);
+          animation:rippleCR 0.5s linear forwards;
+          left:${e.clientX - rect.left}px;top:${e.clientY - rect.top}px;
+        `;
+        this.appendChild(circle);
+        setTimeout(() => circle.remove(), 550);
+      });
+
+      if (!document.getElementById('rippleCRStyle')) {
+        const s = document.createElement('style');
+        s.id = 'rippleCRStyle';
+        s.textContent = `@keyframes rippleCR{to{transform:translate(-50%,-50%) scale(2.8);opacity:0;}}`;
+        document.head.appendChild(s);
+      }
+    })();
+
+    /* ── Navbar scroll shrink (standalone, no section-spy needed) ── */
+    (function () {
+      const nav = document.getElementById('navbar');
+      const ham = document.getElementById('hamburger');
+      const links = document.getElementById('navLinks');
+      window.addEventListener('scroll', () => nav.classList.toggle('scrolled', window.scrollY > 60));
+      ham && ham.addEventListener('click', () => links.classList.toggle('open'));
+    })();
+  </script>
+
+</body>
+</html>
