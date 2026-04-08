@@ -59,9 +59,9 @@ SmartAgriAI/
 | Model | Link |
 |---|---|
 | 🌱 Crop Recommendation |  https://crop-recommendadtion.onrender.com
-| 🦠 Disease Detection |  https://soil-fertility-rkv4.onrender.com
+| 🦠 Soil Fertility |  https://soil-fertility-rkv4.onrender.com
 | 🌾 Yield Prediction | https://yield-prediction-vwqh.onrender.com
-| 📊 Additional Model |  https://disease-classification-t6o3.onrender.com
+| 📊 Disease Detection |  https://disease-classification-t6o3.onrender.com
 
 ---
 
