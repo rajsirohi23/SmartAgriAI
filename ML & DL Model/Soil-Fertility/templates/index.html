@@ -1,0 +1,637 @@
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Soil Fertility Analyzer — Smart Agri AI</title>
+
+  <!-- Google Fonts — same as homepage -->
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+  <!-- Font Awesome — same as homepage -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+  <!-- Soil Fertility stylesheet -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+
+  <!-- ============================================================
+       ANIMATED CANVAS BACKGROUND
+  ============================================================ -->
+  <canvas id="bgCanvas"></canvas>
+
+  <!-- ============================================================
+       NAVBAR
+  ============================================================ -->
+  <nav class="navbar" id="navbar">
+    <div class="nav-container">
+
+      <!-- Logo -->
+      <div class="nav-logo">
+        <span class="logo-icon"><i class="fa-solid fa-leaf"></i></span>
+        <span class="logo-text">Smart<span class="accent">Agri</span> AI</span>
+      </div>
+
+      <!-- Links -->
+      <!-- <ul class="nav-links" id="navLinks">
+        <li><a href="/"          class="nav-link">Home</a></li>
+        <li><a href="/#about"    class="nav-link">About</a></li>
+        <li><a href="/#services" class="nav-link active">Services</a></li>
+        <li><a href="/#features" class="nav-link">Features</a></li>
+        <li><a href="/#contact"  class="nav-link">Contact</a></li>
+      </ul> -->
+
+      <!-- Mobile hamburger -->
+      <div class="hamburger" id="hamburger">
+        <span></span><span></span><span></span>
+      </div>
+
+    </div>
+  </nav>
+
+  <!-- ============================================================
+       PAGE WRAPPER
+  ============================================================ -->
+  <div class="sf-page">
+
+    <!-- ──────────────────────────────────────
+         HERO SECTION
+    ────────────────────────────────────── -->
+    <div class="sf-hero">
+
+      <!-- Floating orbs (same as homepage) -->
+      <div class="orb orb1"></div>
+      <div class="orb orb2"></div>
+      <div class="orb orb3"></div>
+
+      <!-- Breadcrumb -->
+      <div class="sf-breadcrumb">
+        <a href="/"><i class="fa-solid fa-house"></i> Home</a>
+        <i class="fa-solid fa-chevron-right"></i>
+        <a href="/#services">Services</a>
+        <i class="fa-solid fa-chevron-right"></i>
+        <span>Soil Fertility</span>
+      </div>
+
+      <!-- Badge -->
+      <div class="sf-badge">
+        <i class="fa-solid fa-flask-vial"></i> AI Module 02 — SVM / XGBoost
+      </div>
+
+      <!-- Title -->
+      <h1 class="sf-title">
+        Soil Fertility<br />
+        <span class="g-text">Analyzer</span>
+      </h1>
+
+      <!-- Subtitle -->
+      <p class="sf-subtitle">
+        Enter your soil test values to estimate fertility class and identify
+        which properties may need attention — powered by Machine Learning.
+      </p>
+
+    </div><!-- /sf-hero -->
+
+
+    <!-- ──────────────────────────────────────
+         MAIN — two-column layout
+    ────────────────────────────────────── -->
+    <main class="sf-main">
+
+      <!-- ════════════════════════════════════
+           LEFT CARD — Input Form
+      ════════════════════════════════════ -->
+      <div class="sf-card">
+
+        <!-- Card header -->
+        <div class="sf-card-header">
+          <div class="sf-card-icon">
+            <i class="fa-solid fa-flask-vial"></i>
+          </div>
+          <div class="sf-card-header-text">
+            <h2>Soil Parameters</h2>
+            <p>Fill every field — prediction is instant</p>
+          </div>
+        </div>
+
+        <!-- Error alert (shown only if Flask sends error_message) -->
+        {% if error_message %}
+        <div class="sf-alert sf-alert-error">
+          <div class="sf-alert-icon">
+            <i class="fa-solid fa-circle-exclamation"></i>
+          </div>
+          <div>
+            <strong>Input Error</strong><br />
+            <span style="font-size:0.82rem;opacity:0.85;">{{ error_message }}</span>
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- Form -->
+        <form method="post" id="soil-form" novalidate>
+
+          <div class="sf-form-grid">
+            {% for col in feature_columns %}
+            <div class="sf-field">
+              <label for="{{ col }}">
+                <i class="fa-solid fa-vial"></i> {{ col }}
+              </label>
+              <div class="sf-field-wrap">
+                <input
+                  type="number"
+                  step="0.0001"
+                  name="{{ col }}"
+                  id="{{ col }}"
+                  required
+                  value="{{ input_values.get(col, '') }}"
+                  placeholder="Enter value"
+                />
+                <!-- Dynamic unit hints based on column name -->
+                {% if 'pH' in col or 'ph' in col %}
+                  <span class="sf-field-unit">0–14</span>
+                {% elif col in ['N', 'Nitrogen'] or 'nitrogen' in col|lower %}
+                  <span class="sf-field-unit">kg/ha</span>
+                {% elif col in ['P', 'Phosphorus'] or 'phosphorus' in col|lower %}
+                  <span class="sf-field-unit">kg/ha</span>
+                {% elif col in ['K', 'Potassium'] or 'potassium' in col|lower %}
+                  <span class="sf-field-unit">kg/ha</span>
+                {% elif '%' in col or 'OM' in col or 'om' in col|lower %}
+                  <span class="sf-field-unit">%</span>
+                {% elif 'EC' in col or 'ec' in col|lower %}
+                  <span class="sf-field-unit">dS/m</span>
+                {% elif 'Temp' in col or 'temp' in col|lower %}
+                  <span class="sf-field-unit">°C</span>
+                {% elif 'Humidity' in col or 'humidity' in col|lower %}
+                  <span class="sf-field-unit">%</span>
+                {% elif 'Rainfall' in col or 'rainfall' in col|lower %}
+                  <span class="sf-field-unit">mm</span>
+                {% else %}
+                  <span class="sf-field-unit">val</span>
+                {% endif %}
+              </div>
+            </div>
+            {% endfor %}
+          </div><!-- /sf-form-grid -->
+
+          <!-- Guide chips -->
+          <div class="sf-guide">
+            <span class="sf-guide-chip"><i class="fa-solid fa-circle-info"></i> N, P, K in kg/ha</span>
+            <span class="sf-guide-chip"><i class="fa-solid fa-circle-info"></i> pH between 0–14</span>
+            <span class="sf-guide-chip"><i class="fa-solid fa-circle-info"></i> EC in dS/m</span>
+            <span class="sf-guide-chip"><i class="fa-solid fa-brain"></i> SVM / XGBoost model</span>
+          </div>
+
+          <!-- Divider -->
+          <div class="sf-form-divider"></div>
+
+          <!-- Action buttons -->
+          <div class="sf-actions">
+            <button type="submit" class="sf-btn-submit" id="sfSubmitBtn">
+              <i class="fa-solid fa-magnifying-glass-chart"></i>
+              <span class="btn-label">Analyze Soil</span>
+              <div class="btn-spinner"></div>
+              <i class="fa-solid fa-arrow-right"></i>
+            </button>
+            <button type="reset" class="sf-btn-reset" id="sfResetBtn">
+              <i class="fa-solid fa-rotate-left"></i>
+              Clear All
+            </button>
+          </div>
+
+        </form>
+      </div><!-- /left card -->
+
+
+      <!-- ════════════════════════════════════
+           RIGHT CARD — Results
+      ════════════════════════════════════ -->
+      <div class="sf-card">
+
+        <!-- Card header -->
+        <div class="sf-card-header">
+          <div class="sf-card-icon sf-card-icon-teal">
+            <i class="fa-solid fa-chart-pie"></i>
+          </div>
+          <div class="sf-card-header-text">
+            <h2>Analysis Result</h2>
+            <p>AI-generated fertility assessment</p>
+          </div>
+        </div>
+
+        {% if prediction_label %}
+
+          <!-- ── Result summary ── -->
+          <div class="sf-result-summary">
+
+            <!-- Fertile / Not-Fertile status chip -->
+            <div class="sf-result-chip {% if prediction_label == 'Fertile' %}sf-chip-fertile{% else %}sf-chip-infertile{% endif %}">
+              <span class="sf-chip-dot"></span>
+              {% if prediction_label == 'Fertile' %}
+                <i class="fa-solid fa-circle-check"></i>
+              {% else %}
+                <i class="fa-solid fa-triangle-exclamation"></i>
+              {% endif %}
+              {{ prediction_label }}
+            </div>
+
+            <!-- Confidence bar -->
+            {% if probability is not none %}
+            <div class="sf-confidence">
+              <div class="sf-confidence-label">
+                <span>Model Confidence</span>
+                <span>{{ (probability * 100) | round(1) }}%</span>
+              </div>
+              <div class="sf-confidence-track">
+                <div
+                  class="sf-confidence-fill"
+                  id="confFill"
+                  style="width: 0%;"
+                  data-width="{{ (probability * 100) | round(1) }}">
+                </div>
+              </div>
+            </div>
+            {% endif %}
+
+            <!-- Overview message -->
+            {% if overview_message %}
+            <div class="sf-overview">
+              <i class="fa-solid fa-circle-info" style="color:#4ade80;margin-right:0.4rem;"></i>
+              {{ overview_message }}
+            </div>
+            {% endif %}
+
+          </div><!-- /sf-result-summary -->
+
+          <!-- ── What looks good ── -->
+          {% if nutrient_strengths %}
+          <div class="sf-strengths">
+            <p class="sf-section-title">
+              <i class="fa-solid fa-thumbs-up"></i> What Looks Good
+            </p>
+            <ul class="sf-strengths-list">
+              {% for item in nutrient_strengths %}
+              <li>
+                <i class="fa-solid fa-circle-check"></i>
+                {{ item }}
+              </li>
+              {% endfor %}
+            </ul>
+          </div>
+          {% endif %}
+
+          <!-- ── Properties needing attention ── -->
+          {% if nutrient_issues %}
+          <div class="sf-issues">
+            <p class="sf-section-title">
+              <i class="fa-solid fa-triangle-exclamation" style="color:#fb923c;"></i>
+              Properties Needing Attention
+            </p>
+            <ul class="sf-issues-list">
+              {% for issue in nutrient_issues %}
+              <li class="sf-issue-item">
+                <div class="sf-issue-row">
+                  <span class="sf-issue-name">{{ issue.name }}</span>
+                  <span class="sf-issue-badge">{{ issue.status }}</span>
+                </div>
+                <p class="sf-issue-detail">{{ issue.detail }}</p>
+              </li>
+              {% endfor %}
+            </ul>
+          </div>
+          {% else %}
+          <div class="sf-no-issues">
+            <i class="fa-solid fa-circle-check"></i>
+            No major issues detected. Always confirm with detailed lab guidance.
+          </div>
+          {% endif %}
+
+          <!-- ── Raw input values entered ── -->
+          {% if input_values %}
+          <div class="sf-raw-input">
+            <p class="sf-raw-title">
+              <i class="fa-solid fa-table" style="color:#4ade80;margin-right:0.3rem;"></i>
+              Values You Entered
+            </p>
+            <div class="sf-chip-row">
+              {% for k, v in input_values.items() %}
+              <span class="sf-chip">{{ k }}: {{ v }}</span>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+
+        {% else %}
+
+          <!-- ── Empty state (no result yet) ── -->
+          <div class="sf-placeholder">
+            <div class="sf-placeholder-icon">
+              <i class="fa-solid fa-flask-vial"></i>
+            </div>
+            <div>
+              <strong>No Analysis Yet</strong><br />
+              Submit your soil parameters on the left to see fertility status,
+              confidence score, and nutrient insights.
+            </div>
+          </div>
+
+        {% endif %}
+
+      </div><!-- /right card -->
+
+    </main><!-- /sf-main -->
+
+
+    <!-- ============================================================
+         FOOTER
+    ============================================================ -->
+    <footer class="footer">
+      <div class="footer-bg-animation"></div>
+      <div class="footer-container">
+
+        <!-- Brand -->
+        <div class="footer-brand">
+          <div class="nav-logo">
+            <span class="logo-icon"><i class="fa-solid fa-leaf"></i></span>
+            <span class="logo-text">Smart<span class="accent">Agri</span> AI</span>
+          </div>
+          <p>Empowering farmers with the power of artificial intelligence. Modern farming for a sustainable future.</p>
+          <div class="footer-socials">
+            <a href="#"><i class="fa-brands fa-github"></i></a>
+            <a href="#"><i class="fa-brands fa-linkedin"></i></a>
+            <a href="#"><i class="fa-brands fa-twitter"></i></a>
+            <a href="#"><i class="fa-brands fa-instagram"></i></a>
+          </div>
+        </div>
+
+        <!-- Quick links -->
+        <div class="footer-links">
+          <h4>Quick Links</h4>
+          <ul>
+            <li><a href="/"><i class="fa-solid fa-chevron-right"></i> Home</a></li>
+            <li><a href="/#about"><i class="fa-solid fa-chevron-right"></i> About</a></li>
+            <li><a href="/#services"><i class="fa-solid fa-chevron-right"></i> Services</a></li>
+            <li><a href="/#features"><i class="fa-solid fa-chevron-right"></i> Features</a></li>
+            <li><a href="/#contact"><i class="fa-solid fa-chevron-right"></i> Contact</a></li>
+          </ul>
+        </div>
+
+        <!-- AI modules -->
+        <div class="footer-links">
+          <h4>AI Modules</h4>
+          <ul>
+            <li><a href="http://127.0.0.1:5002"><i class="fa-solid fa-chevron-right"></i> Crop Recommendation</a></li>
+            <li><a href="http://127.0.0.1:5001"><i class="fa-solid fa-chevron-right"></i> Soil Fertility</a></li>
+            <li><a href="http://127.0.0.1:5000"><i class="fa-solid fa-chevron-right"></i> Yield Prediction</a></li>
+            <li><a href="http://127.0.0.1:5003"><i class="fa-solid fa-chevron-right"></i> Disease Detection</a></li>
+          </ul>
+        </div>
+
+        <!-- Tech stack -->
+        <div class="footer-tech">
+          <h4>Tech Stack</h4>
+          <div class="tech-tags">
+            <span>Python</span>
+            <span>Flask</span>
+            <span>Scikit-Learn</span>
+            <span>TensorFlow</span>
+            <span>Pandas</span>
+            <span>NumPy</span>
+            <span>OpenCV</span>
+            <span>HTML/CSS/JS</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Bottom bar -->
+      <div class="footer-bottom">
+        <p>© 2025 Smart Agriculture AI. Built with <i class="fa-solid fa-heart"></i> for Farmers of India.</p>
+        <p>ML + DL + Flask | Final Year Project</p>
+      </div>
+    </footer>
+
+  </div><!-- /sf-page -->
+
+
+  <!-- ============================================================
+       JAVASCRIPT
+  ============================================================ -->
+  <script>
+    /* ──────────────────────────────────────────────────────────
+       1. CANVAS — Particle + Grid background
+    ────────────────────────────────────────────────────────── */
+    (function () {
+      const canvas = document.getElementById('bgCanvas');
+      const ctx    = canvas.getContext('2d');
+      let W, H, particles = [], animId;
+
+      function resize() {
+        W = canvas.width  = innerWidth;
+        H = canvas.height = innerHeight;
+      }
+
+      function Particle() { this.reset(); }
+      Particle.prototype.reset = function () {
+        this.x     = Math.random() * W;
+        this.y     = Math.random() * H;
+        this.r     = Math.random() * 1.5 + 0.4;
+        this.vx    = (Math.random() - 0.5) * 0.3;
+        this.vy    = (Math.random() - 0.5) * 0.3;
+        this.alpha = Math.random() * 0.45 + 0.1;
+      };
+      Particle.prototype.update = function () {
+        this.x += this.vx;
+        this.y += this.vy;
+        if (this.x < 0 || this.x > W || this.y < 0 || this.y > H) this.reset();
+      };
+      Particle.prototype.draw = function () {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(74,222,128,${this.alpha})`;
+        ctx.fill();
+      };
+
+      function buildParticles() {
+        particles = [];
+        const n = Math.floor(W * H / 12000);
+        for (let i = 0; i < n; i++) particles.push(new Particle());
+      }
+
+      function drawGrid() {
+        ctx.strokeStyle = 'rgba(74,222,128,0.03)';
+        ctx.lineWidth   = 1;
+        for (let x = 0; x < W; x += 80) {
+          ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+        }
+        for (let y = 0; y < H; y += 80) {
+          ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+        }
+      }
+
+      function connectParticles() {
+        for (let i = 0; i < particles.length; i++) {
+          for (let j = i + 1; j < particles.length; j++) {
+            const dx = particles[i].x - particles[j].x;
+            const dy = particles[i].y - particles[j].y;
+            const d  = Math.sqrt(dx * dx + dy * dy);
+            if (d < 120) {
+              ctx.strokeStyle = `rgba(74,222,128,${(1 - d / 120) * 0.14})`;
+              ctx.lineWidth   = 0.6;
+              ctx.beginPath();
+              ctx.moveTo(particles[i].x, particles[i].y);
+              ctx.lineTo(particles[j].x, particles[j].y);
+              ctx.stroke();
+            }
+          }
+        }
+      }
+
+      function animate() {
+        animId = requestAnimationFrame(animate);
+        ctx.clearRect(0, 0, W, H);
+        drawGrid();
+        connectParticles();
+        particles.forEach(p => { p.update(); p.draw(); });
+      }
+
+      resize();
+      buildParticles();
+      animate();
+      window.addEventListener('resize', () => {
+        cancelAnimationFrame(animId);
+        resize();
+        buildParticles();
+        animate();
+      });
+    })();
+
+
+    /* ──────────────────────────────────────────────────────────
+       2. NAVBAR — scroll shrink + hamburger toggle
+    ────────────────────────────────────────────────────────── */
+    (function () {
+      const nav = document.getElementById('navbar');
+      const ham = document.getElementById('hamburger');
+      const lks = document.getElementById('navLinks');
+
+      window.addEventListener('scroll', () => {
+        nav.classList.toggle('scrolled', scrollY > 60);
+      });
+
+      ham && ham.addEventListener('click', () => {
+        lks.classList.toggle('open');
+      });
+    })();
+
+
+    /* ──────────────────────────────────────────────────────────
+       3. CONFIDENCE BAR — animate fill on page load
+    ────────────────────────────────────────────────────────── */
+    window.addEventListener('load', function () {
+      const fill = document.getElementById('confFill');
+      if (fill) {
+        const target = fill.dataset.width || '0';
+        setTimeout(() => { fill.style.width = target + '%'; }, 350);
+      }
+    });
+
+
+    /* ──────────────────────────────────────────────────────────
+       4. FORM — validation, shake, loading state, ripple
+    ────────────────────────────────────────────────────────── */
+    (function () {
+      const form      = document.getElementById('soil-form');
+      const submitBtn = document.getElementById('sfSubmitBtn');
+      const resetBtn  = document.getElementById('sfResetBtn');
+      if (!form) return;
+
+      /* Submit — validate all required fields */
+      form.addEventListener('submit', function (e) {
+        const inputs = form.querySelectorAll('input[required]');
+        let hasError = false;
+
+        inputs.forEach(input => {
+          input.classList.remove('sf-input-error');
+          if (!input.value.trim()) {
+            hasError = true;
+            input.classList.add('sf-input-error');
+            /* Shake animation */
+            input.animate(
+              [
+                { transform: 'translateX(0)' },
+                { transform: 'translateX(-5px)' },
+                { transform: 'translateX(5px)' },
+                { transform: 'translateX(0)' }
+              ],
+              { duration: 280, iterations: 2 }
+            );
+          }
+        });
+
+        if (hasError) {
+          e.preventDefault();
+          const first = form.querySelector('.sf-input-error');
+          if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          return;
+        }
+
+        /* Show loading state */
+        submitBtn.classList.add('loading');
+        submitBtn.disabled = true;
+      });
+
+      /* Reset — clear all error states */
+      resetBtn && resetBtn.addEventListener('click', function () {
+        form.querySelectorAll('.sf-input-error')
+            .forEach(el => el.classList.remove('sf-input-error'));
+        submitBtn.classList.remove('loading');
+        submitBtn.disabled = false;
+      });
+
+      /* Live clear — remove error as user types */
+      form.querySelectorAll('input').forEach(input => {
+        input.addEventListener('input', function () {
+          if (this.value.trim()) this.classList.remove('sf-input-error');
+        });
+      });
+
+      /* Ripple effect on submit button click */
+      submitBtn.addEventListener('click', function (e) {
+        const rect = this.getBoundingClientRect();
+        const d    = Math.max(this.clientWidth, this.clientHeight);
+        const el   = document.createElement('span');
+        el.style.cssText = `
+          position: absolute;
+          width: ${d}px; height: ${d}px;
+          border-radius: 50%;
+          background: rgba(255,255,255,0.22);
+          pointer-events: none;
+          transform: translate(-50%,-50%) scale(0);
+          animation: sfRipple .5s linear forwards;
+          left: ${e.clientX - rect.left}px;
+          top:  ${e.clientY - rect.top}px;
+        `;
+        this.appendChild(el);
+        setTimeout(() => el.remove(), 550);
+      });
+
+      /* Inject ripple keyframe once */
+      if (!document.getElementById('sfRippleStyle')) {
+        const s = document.createElement('style');
+        s.id = 'sfRippleStyle';
+        s.textContent = `
+          @keyframes sfRipple {
+            to { transform: translate(-50%,-50%) scale(2.8); opacity: 0; }
+          }
+        `;
+        document.head.appendChild(s);
+      }
+    })();
+  </script>
+
+</body>
+</html>
