@@ -38,6 +38,7 @@ SmartAgriAI is a centralized web platform that combines multiple AI models into 
 
 ## 🏗️ Project Architecture
 
+
 SmartAgriAI/
 │
 ├── Main/                # Central Home Page (Navigation Hub)
