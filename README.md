@@ -35,21 +35,24 @@ SmartAgriAI is a centralized web platform that combines multiple AI models into 
 - Convolutional Neural Network (CNN) for image classification
 
 ---
-
 ## 🏗️ Project Architecture
 
-
-SmartAgriAI/
+```
+Smart-Agri/
 │
-├── Main/                # Central Home Page (Navigation Hub)
-├── Crop recomm/         # Crop Recommendation Model
-├── Disease Detection/   # Deep Learning Model (CNN)
-├── Yield Prediction/    # Yield Prediction Model
-├── Other Model/         # Additional ML Model
+├── Main/                     # Central Home Page (Navigation Hub)
+│
+├── ML-Models/               # Machine Learning Models
+│   ├── Crop-Recommendation/
+│   ├── Yield-Prediction/
+│   └── Other-Model/
+│
+├── DL-Models/               # Deep Learning Models
+│   └── Disease-Detection/   # CNN Model
 │
 ├── requirements.txt
 ├── README.md
-└── .gitignore
+```
 
 ---
 
