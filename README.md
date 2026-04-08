@@ -54,7 +54,7 @@ SmartAgriAI/
 
 ## 🌐 Live Demo
 
-👉 Access all deployed models from the Home Page: [[🔗 SmartAgriAI Home Page](#)]([url](https://smartagriaii.netlify.app)) 
+👉 Access all deployed models from the Home Page: [ [🔗 [SmartAgriAI Home Page] :- (https://smartagriaii.netlify.app)) 
 
 | Model | Link |
 |---|---|
